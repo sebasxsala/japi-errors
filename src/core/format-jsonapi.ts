@@ -1,7 +1,9 @@
 import { ApiError } from './api-error'
-import type { JsonApiErrorDocument, JsonApiErrorObject, JsonApiSource, Meta } from '../types'
+import type { JsonApiErrorDocument, JsonApiSource, Meta } from '../types'
 
-export type { JsonApiErrorObject }
+type ApiErrorLike<M = Meta | undefined, S = JsonApiSource | undefined> =
+  | ApiError<M, S>
+  | readonly ApiError<M, S>[]
 
 /**
  * Utility function to format one or multiple ApiErrors into a JSON:API compliant document.
@@ -11,13 +13,13 @@ export type { JsonApiErrorObject }
  * @param opts.sanitize - Whether to sanitize the errors (hide sensitive details).
  * @returns A JSON:API compliant document containing the errors
  */
-export function formatJsonApiErrors<M = Meta, S extends JsonApiSource = JsonApiSource>(
-  input: ApiError<M, S> | ApiError<M, S>[],
+export function formatJsonApiErrors<M = Meta | undefined, S = JsonApiSource | undefined>(
+  input: ApiErrorLike<M, S>,
   opts?: { sanitize?: boolean },
 ): JsonApiErrorDocument<M, S> {
   const errors = Array.isArray(input) ? input : [input]
 
   return {
-    errors: errors.flatMap((error) => error.toJsonApi(opts).errors),
+    errors: errors.map((error) => error.toObject(opts)),
   }
 }

@@ -17,7 +17,8 @@ describe('createApiErrorMapper', () => {
 
   test('should map an AppError to an ApiError based on code', () => {
     const appError = new UserNotFound('The user does not exist')
-    const apiError = mapper(appError)
+    const result = mapper(appError)
+    const apiError = Array.isArray(result) ? result[0]! : result
 
     expect(apiError instanceof ApiError).toBe(true)
     expect(apiError.status).toBe(404)
@@ -30,13 +31,15 @@ describe('createApiErrorMapper', () => {
     class UnknownError extends AppError<'UNKNOWN'> {
       readonly code = 'UNKNOWN'
     }
-    const error = mapper(new UnknownError('msg'))
+    const result = mapper(new UnknownError('msg'))
+    const error = Array.isArray(result) ? result[0]! : result
     expect(error.status).toBe(400)
     expect(error.title).toBe('Application error')
   })
 
   test('should handle completely unknown errors with 500', () => {
-    const error = mapper(new Error('Boom'))
+    const result = mapper(new Error('Boom'))
+    const error = Array.isArray(result) ? result[0]! : result
     expect(error.status).toBe(500)
     expect(error.code).toBe('INTERNAL_SERVER_ERROR')
     expect(error.expose).toBe(false)
@@ -46,7 +49,7 @@ describe('createApiErrorMapper', () => {
     const customMapper = createApiErrorMapper(
       {},
       {
-        unknownHandler: (err) =>
+        unknownHandler: (_err) =>
           new ApiError({
             status: 418,
             title: 'Teapot',
@@ -56,7 +59,8 @@ describe('createApiErrorMapper', () => {
       },
     )
 
-    const error = customMapper(new Error('Whoops'))
+    const result = customMapper(new Error('Whoops'))
+    const error = Array.isArray(result) ? result[0]! : result
     expect(error.status).toBe(418)
   })
 
@@ -76,8 +80,34 @@ describe('createApiErrorMapper', () => {
     })
 
     const err = new ValidationError('Bad email', { field: 'email' })
-    const apiErr = complexMapper(err)
+    const result = complexMapper(err)
+    const apiErr = Array.isArray(result) ? result[0]! : result
 
     expect(apiErr.source?.pointer).toBe('/data/attributes/email')
+  })
+
+  test('should support returning multiple errors from unknownHandler', () => {
+    const multiMapper = createApiErrorMapper(
+      {},
+      {
+        unknownHandler: (err: any) => {
+          if (err.isZod) {
+            return [
+              new ApiError({ status: 422, title: 'Err 1', detail: 'd1', code: 'E1' }),
+              new ApiError({ status: 422, title: 'Err 2', detail: 'd2', code: 'E2' }),
+            ]
+          }
+          return new ApiError({ status: 500, title: 'Err', detail: 'd', code: 'E' })
+        },
+      },
+    )
+
+    const result = multiMapper({ isZod: true })
+    expect(Array.isArray(result)).toBe(true)
+    if (Array.isArray(result)) {
+      expect(result.length).toBe(2)
+      expect(result[0].code).toBe('E1')
+      expect(result[1].code).toBe('E2')
+    }
   })
 })

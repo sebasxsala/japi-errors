@@ -14,6 +14,8 @@ A lightweight, robust, and tree-shakable error handling toolkit for **JSON:API**
 - **🛡️ Type-Safe**: Built with TypeScript for excellent IDE support and JSDoc tooltips.
 - **🔒 Secure by Default**: Automatic sanitization for 5xx errors (hidden from clients).
 - **🧩 JSON:API Compliant**: Generates structures following the [official specification](https://jsonapi.org/format/#error-objects).
+- **🔗 Fluent Interface**: Build errors using chainable methods like `.withMeta()`, `.withSource()`, etc.
+- **🗺️ Powerful Mapping**: Map any error (Zod, Prisma, etc.) centrally via a type-safe mapper.
 
 ---
 
@@ -61,9 +63,26 @@ const error = new ApiError({
   title: "I'm a teapot",
   detail: 'Custom brewing error',
   code: 'TEAPOT_ERROR',
-  meta: { temperature: 100 },
 })
+  .withMeta({ temperature: 100 })
+  .withLinks({ about: 'https://docs.brew.com/errors/teapot' })
+  .withSource({ pointer: '/brewer/valve' })
 ```
+
+### Fluent / Chainable API
+
+All `ApiError` instances (including those from factories like `NotFound`) support chainable methods for a better developer experience:
+
+```typescript
+import { BadRequest } from 'japi-errors'
+
+throw BadRequest({ detail: 'Missing field' })
+  .withSource({ pointer: '/data/attributes/email' })
+  .withMeta({ validator: 'zod' })
+  .withId('unique-error-id')
+```
+
+````
 
 ### Extending ApiError
 
@@ -82,7 +101,7 @@ class PaymentRequiredError extends ApiError {
     })
   }
 }
-```
+````
 
 ---
 
@@ -146,18 +165,58 @@ try {
 
 ## 🌍 Integration Examples
 
+### Zod Integration
+
+The `unknownHandler` in `createApiErrorMapper` now supports returning multiple errors, making it ideal for mapping `ZodError` issues.
+
+```typescript
+import { z } from 'zod'
+import { ApiError, createApiErrorMapper, formatJsonApiErrors } from 'japi-errors'
+
+const mapError = createApiErrorMapper(
+  {},
+  {
+    unknownHandler: (err) => {
+      if (err instanceof z.ZodError) {
+        return err.issues.map(
+          (issue) =>
+            new ApiError({
+              status: 422,
+              title: 'Validation Error',
+              detail: issue.message,
+              code: `ZOD_ERROR_${issue.code.toUpperCase()}`,
+              source: { pointer: `/${issue.path.join('/')}` },
+            }),
+        )
+      }
+      // Default to 500
+      return InternalServerError({ cause: err })
+    },
+  },
+)
+
+// Integration with formatJsonApiErrors
+try {
+  schema.parse(data)
+} catch (err) {
+  const apiErrors = mapError(err)
+  return res.status(422).json(formatJsonApiErrors(apiErrors))
+}
+```
+
 ### Express Middleware
 
 ```typescript
-import { createApiErrorMapper } from 'japi-errors'
+import { createApiErrorMapper, formatJsonApiErrors } from 'japi-errors'
 
 // Setup your mapper
 const mapError = createApiErrorMapper(myErrorMap)
 
 app.use((err, req, res, next) => {
   const apiError = mapError(err)
+  const status = Array.isArray(apiError) ? apiError[0].status : apiError.status
 
-  res.status(apiError.status).json(apiError.toJsonApi())
+  res.status(status).json(formatJsonApiErrors(apiError))
 })
 ```
 

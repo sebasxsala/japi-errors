@@ -23,7 +23,7 @@ export type JsonApiLinks = {
  * A JSON:API compliant Error Object.
  * @see https://jsonapi.org/format/#error-objects
  */
-export type JsonApiErrorObject<M = Meta, S extends JsonApiSource = JsonApiSource> = {
+export type JsonApiErrorObject<M = Meta, S = JsonApiSource | undefined> = {
   /** A unique identifier for this particular occurrence of the problem */
   id?: string
   /** A links object containing about and type links */
@@ -45,6 +45,6 @@ export type JsonApiErrorObject<M = Meta, S extends JsonApiSource = JsonApiSource
 /**
  * A JSON:API compliant Error Document.
  */
-export type JsonApiErrorDocument<M = Meta, S extends JsonApiSource = JsonApiSource> = {
+export type JsonApiErrorDocument<M = Meta, S = JsonApiSource | undefined> = {
   errors: JsonApiErrorObject<M, S>[]
 }

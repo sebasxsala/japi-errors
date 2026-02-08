@@ -35,7 +35,9 @@ type LooseMapping = {
 
 type LooseErrorMap = Record<string, LooseMapping>
 
-export type ErrorAdapter = (err: unknown) => ApiError | undefined
+export type ApiErrorLike = ApiError | readonly ApiError[]
+
+export type ErrorAdapter = (err: unknown) => ApiErrorLike | undefined
 
 /**
  * Utility to define an ErrorMap with proper type inference for AppErrors.
@@ -58,7 +60,7 @@ export function createApiErrorMapper<E extends AnyAppError = AnyAppError>(
   opts?: {
     defaultMapping?: Mapping<AnyAppError>
     adapters?: readonly ErrorAdapter[]
-    unknownHandler?: (err: unknown) => ApiError
+    unknownHandler?: (err: unknown) => ApiErrorLike
   },
 ) {
   const defaultMapping: Mapping<AnyAppError> = opts?.defaultMapping ?? {
@@ -66,7 +68,7 @@ export function createApiErrorMapper<E extends AnyAppError = AnyAppError>(
     title: 'Application error',
   }
 
-  return function toApiError(err: unknown): ApiError {
+  return function toApiError(err: unknown): ApiErrorLike {
     if (err instanceof ApiError) return err
 
     if (err instanceof AppError) {
@@ -87,6 +89,7 @@ export function createApiErrorMapper<E extends AnyAppError = AnyAppError>(
         source: extra?.source,
         headers: extra?.headers,
         id: extra?.id,
+        links: extra?.links,
         expose: extra?.expose ?? mapping.expose,
         isOperational: appError.isOperational,
         cause: extra?.cause,
