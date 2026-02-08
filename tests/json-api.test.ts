@@ -1,6 +1,6 @@
 import { expect, test, describe } from 'bun:test'
 import { ApiError } from '../src/core/api-error'
-import { formatJsonApiErrors } from '../src/core/format-jsonapi'
+import { formatJsonApiErrors } from '../src/formatters/json-api'
 
 describe('formatJsonApiErrors', () => {
   const err1 = new ApiError({

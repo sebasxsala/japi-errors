@@ -1,4 +1,4 @@
-import { ApiError } from './api-error'
+import { ApiError } from '../core/api-error'
 import type { JsonApiErrorDocument, JsonApiSource, Meta } from '../types'
 
 type ApiErrorLike<M = Meta | undefined, S = JsonApiSource | undefined> =
@@ -20,6 +20,6 @@ export function formatJsonApiErrors<M = Meta | undefined, S = JsonApiSource | un
   const errors = Array.isArray(input) ? input : [input]
 
   return {
-    errors: errors.map((error) => error.toObject(opts)),
+    errors: errors.map((error) => error.toJsonApiObject(opts)),
   }
 }

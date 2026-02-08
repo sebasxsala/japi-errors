@@ -70,7 +70,7 @@ describe('ApiError', () => {
       source: { parameter: 'query' },
     })
 
-    const json = error.toJsonApi()
+    const json = error.toJsonApiDocument()
 
     expect(json).toEqual({
       errors: [
@@ -95,11 +95,11 @@ describe('ApiError', () => {
       code: 'DB_CRASH',
     })
 
-    const json = error.toJsonApi()
+    const json = error.toJsonApiDocument()
 
-    expect(json.errors[0]!.title).toBe('Internal Server Error')
-    expect(json.errors[0]!.detail).toBe('An unexpected error occurred on the server.')
-    expect(json.errors[0]!.code).toBe('INTERNAL_SERVER_ERROR')
+    expect(json.errors[0]?.title).toBe('Internal Server Error')
+    expect(json.errors[0]?.detail).toBe('An unexpected error occurred on the server.')
+    expect(json.errors[0]?.code).toBe('INTERNAL_SERVER_ERROR')
   })
 
   test('toJsonApi should allow forcing sanitize', () => {
@@ -110,7 +110,7 @@ describe('ApiError', () => {
       code: 'VISIBLE',
     })
 
-    const json = error.toJsonApi({ sanitize: true })
+    const json = error.toJsonApiDocument({ sanitize: true })
 
     expect(json.errors[0]!.title).toBe('Internal Server Error')
   })
@@ -161,6 +161,71 @@ describe('ApiError', () => {
       links: { about: 'http://foo' },
     })
 
-    expect(error.toObject().links?.about).toBe('http://foo')
+    expect(error.toJsonApiObject().links?.about).toBe('http://foo')
+  })
+
+  describe('toProblemDetails', () => {
+    test('should return RFC 9457 compliant structure', () => {
+      const error = new ApiError({
+        status: 404,
+        title: 'Not Found',
+        detail: 'Resource not found',
+        code: 'NOT_FOUND',
+        id: 'instance-id',
+        links: { about: 'http://docs/errors/404' },
+      })
+
+      const pd = error.toProblemDetails()
+
+      expect(pd.type).toBe('http://docs/errors/404')
+      expect(pd.title).toBe('Not Found')
+      expect(pd.status).toBe(404)
+      expect(pd.detail).toBe('Resource not found')
+      expect(pd.instance).toBe('instance-id')
+    })
+
+    test('should sanitize when status >= 500', () => {
+      const error = new ApiError({
+        status: 500,
+        title: 'Crash',
+        detail: 'Stack trace',
+        code: 'CRASH',
+      })
+
+      const pd = error.toProblemDetails()
+
+      expect(pd.title).toBe('Internal Server Error')
+      expect(pd.detail).toBe('An unexpected error occurred on the server.')
+      expect(pd.code).toBe('INTERNAL_SERVER_ERROR')
+    })
+
+    test('should default type to about:blank', () => {
+      const error = new ApiError({
+        status: 400,
+        title: 'Bad',
+        detail: 'Bad',
+        code: 'BAD',
+        meta: { cosita: 'aoiesnt' },
+      })
+
+      const pd = error.toProblemDetails()
+      expect(pd.type).toBe('about:blank')
+    })
+
+    test('should include meta when not sanitized', () => {
+      const error = new ApiError({
+        status: 400,
+        title: 'Bad',
+        detail: 'Bad',
+        code: 'BAD',
+        meta: { cosita: 'aoiesnt', number: 123 },
+      })
+
+      const pd = error.toProblemDetails({ sanitize: false })
+      expect(pd.cosita).toBe('aoiesnt')
+      expect(typeof pd.cosita).toBe('string')
+      expect(pd.number).toBe(123)
+      expect(typeof pd.number).toBe('number')
+    })
   })
 })

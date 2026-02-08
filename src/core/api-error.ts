@@ -4,12 +4,16 @@ import type {
   JsonApiLinks,
   JsonApiSource,
   Meta,
+  ProblemDetails,
 } from '../types'
 
 /**
  * Options for creating an ApiError.
  */
-export type ApiErrorOptions<M = Meta | undefined, S = JsonApiSource | undefined> = {
+export type ApiErrorOptions<
+  M extends Record<string, unknown> = Meta,
+  S = JsonApiSource | undefined,
+> = {
   /** HTTP status code (e.g. 400, 404, 500) */
   status: number
   /** Short, human-readable summary of the problem */
@@ -26,6 +30,10 @@ export type ApiErrorOptions<M = Meta | undefined, S = JsonApiSource | undefined>
   id?: string
   /** Links to further information about the error */
   links?: JsonApiLinks
+  /** Tags for categorization/filtering */
+  tags?: string[]
+  /** Indicates if the operation can be retried */
+  retryable?: boolean
 
   /** Custom HTTP headers to be sent with the error response */
   headers?: Record<string, string>
@@ -40,7 +48,10 @@ export type ApiErrorOptions<M = Meta | undefined, S = JsonApiSource | undefined>
 /**
  * Represents an error that can be converted to a JSON:API compliant structure.
  */
-export class ApiError<M = Meta | undefined, S = JsonApiSource | undefined> extends Error {
+export class ApiError<
+  M extends Record<string, unknown> = Meta,
+  S = JsonApiSource | undefined,
+> extends Error {
   readonly status: number
   readonly title: string
   readonly detail: string
@@ -49,6 +60,8 @@ export class ApiError<M = Meta | undefined, S = JsonApiSource | undefined> exten
   readonly meta: M
   readonly id?: string
   readonly links?: JsonApiLinks
+  readonly tags: string[]
+  readonly retryable: boolean
   readonly isOperational: boolean
   readonly headers: Record<string, string>
   readonly expose: boolean
@@ -65,6 +78,8 @@ export class ApiError<M = Meta | undefined, S = JsonApiSource | undefined> exten
     this.meta = options.meta as M
     this.id = options.id
     this.links = options.links
+    this.tags = options.tags ?? []
+    this.retryable = options.retryable ?? false
     this.isOperational = options.isOperational ?? true
     this.headers = options.headers ?? {}
     this.expose = options.expose ?? options.status < 500
@@ -111,6 +126,8 @@ export class ApiError<M = Meta | undefined, S = JsonApiSource | undefined> exten
       meta: this.meta,
       id: this.id,
       links: this.links,
+      tags: this.tags,
+      retryable: this.retryable,
       isOperational: this.isOperational,
       headers: this.headers,
       expose: this.expose,
@@ -121,7 +138,7 @@ export class ApiError<M = Meta | undefined, S = JsonApiSource | undefined> exten
   /**
    * Converts the error to a JSON:API compliant error object.
    */
-  toObject(opts?: { sanitize?: boolean }): JsonApiErrorObject<M, S> {
+  toJsonApiObject(opts?: { sanitize?: boolean }): JsonApiErrorObject<M, S> {
     const sanitize = opts?.sanitize ?? (!this.expose || this.status >= 500)
     const title = sanitize ? 'Internal Server Error' : this.title
     const detail = sanitize ? 'An unexpected error occurred on the server.' : this.detail
@@ -146,9 +163,29 @@ export class ApiError<M = Meta | undefined, S = JsonApiSource | undefined> exten
    * @param opts.sanitize - Whether to sanitize the error (hide sensitive details).
    *                        Defaults to the inverse of `expose` or true for status >= 500.
    */
-  toJsonApi(opts?: { sanitize?: boolean }): JsonApiErrorDocument<M, S> {
+  toJsonApiDocument(opts?: { sanitize?: boolean }): JsonApiErrorDocument<M, S> {
     return {
-      errors: [this.toObject(opts)],
+      errors: [this.toJsonApiObject(opts)],
     }
+  }
+
+  /**
+   * Converts the error to a Problem Details object (RFC 9457).
+   */
+  toProblemDetails(opts?: { sanitize?: boolean }): ProblemDetails<M> {
+    const sanitize = opts?.sanitize ?? (!this.expose || this.status >= 500)
+    const title = sanitize ? 'Internal Server Error' : this.title
+    const detail = sanitize ? 'An unexpected error occurred on the server.' : this.detail
+    const type = this.links?.about ?? 'about:blank'
+
+    return {
+      type,
+      title,
+      status: this.status,
+      detail,
+      instance: this.id,
+      code: sanitize ? 'INTERNAL_SERVER_ERROR' : this.code,
+      ...(!sanitize && this.meta ? this.meta : {}),
+    } as ProblemDetails<M>
   }
 }

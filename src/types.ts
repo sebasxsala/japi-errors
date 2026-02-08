@@ -48,3 +48,16 @@ export type JsonApiErrorObject<M = Meta, S = JsonApiSource | undefined> = {
 export type JsonApiErrorDocument<M = Meta, S = JsonApiSource | undefined> = {
   errors: JsonApiErrorObject<M, S>[]
 }
+
+/**
+ * Problem Details for HTTP APIs (RFC 9457)
+ * @see https://tools.ietf.org/html/rfc9457
+ */
+export type ProblemDetails<TExt extends Record<string, unknown> = Record<string, unknown>> = {
+  type?: string
+  title?: string
+  status?: number
+  detail?: string
+  instance?: string
+  code?: string
+} & TExt
