@@ -5,17 +5,7 @@ export default defineConfig({
   format: ['esm', 'cjs'],
   dts: true,
   clean: true,
-  sourcemap: true,
-  minify: true,
-  target: 'es2022',
-  splitting: true,
+  target: 'es2019',
   treeshake: true,
-  metafile: true,
-  shims: true,
   outDir: 'dist',
-  outExtension({ format }) {
-    return {
-      js: format === 'esm' ? '.mjs' : '.cjs',
-    }
-  },
 })
