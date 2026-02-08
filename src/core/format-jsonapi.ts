@@ -1,41 +1,23 @@
-// format-jsonapi.ts
 import { ApiError } from './api-error'
-import type { Meta } from '../types'
+import type { JsonApiErrorDocument, JsonApiErrorObject, JsonApiSource, Meta } from '../types'
 
-export type JsonApiErrorObject = {
-  id?: string
-  links?: { about?: string; type?: string }
-  status?: string
-  code?: string
-  title?: string
-  detail?: string
-  source?: { pointer?: string; parameter?: string; header?: string }
-  meta?: Meta
-}
+export type { JsonApiErrorObject }
 
-export function formatJsonApiErrors(
-  input: ApiError<any> | ApiError<any>[],
+/**
+ * Utility function to format one or multiple ApiErrors into a JSON:API compliant document.
+ *
+ * @param input - A single ApiError or an array of ApiErrors
+ * @param opts - Options for the conversion
+ * @param opts.sanitize - Whether to sanitize the errors (hide sensitive details).
+ * @returns A JSON:API compliant document containing the errors
+ */
+export function formatJsonApiErrors<M = Meta, S extends JsonApiSource = JsonApiSource>(
+  input: ApiError<M, S> | ApiError<M, S>[],
   opts?: { sanitize?: boolean },
-): { errors: JsonApiErrorObject[] } {
+): JsonApiErrorDocument<M, S> {
   const errors = Array.isArray(input) ? input : [input]
 
   return {
-    errors: errors.map((e) => {
-      const sanitize = opts?.sanitize ?? !e.expose
-
-      const title = sanitize ? 'Internal Server Error' : e.title
-      const detail = sanitize ? 'An unexpected error occurred on the server.' : e.detail
-      const code = sanitize ? 'INTERNAL_SERVER_ERROR' : e.code
-
-      return {
-        status: String(e.status),
-        title,
-        detail,
-        code,
-        ...(e.id ? { id: e.id } : {}),
-        ...(!sanitize && e.source ? { source: e.source } : {}),
-        ...(!sanitize && e.meta ? { meta: e.meta as any } : {}),
-      }
-    }),
+    errors: errors.flatMap((error) => error.toJsonApi(opts).errors),
   }
 }
