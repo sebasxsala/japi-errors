@@ -39,11 +39,15 @@ export class ErrorCollector {
 
   /**
    * Throws an AggregateError if there are any collected errors.
+   * If there is only one error, it throws that error directly.
+   * If there are multiple errors, it throws an AggregateError.
    */
-  throwIfAny(): void {
-    if (this.hasErrors) {
-      throw new AggregateError(this._errors)
+  throw(): void {
+    if (this.errors.length === 1) {
+      throw this.errors[0]
     }
+
+    throw new AggregateError(this._errors, `${this.errors.length} errors occurred`)
   }
 
   /**
