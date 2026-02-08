@@ -49,6 +49,41 @@ const document = formatJsonApiErrors(error)
 */
 ```
 
+### Direct Instantiation (Custom Errors)
+
+If you need complete control or a custom status code not in the defaults, import `ApiError` directly:
+
+```typescript
+import { ApiError } from 'japi-errors'
+
+const error = new ApiError({
+  status: 418,
+  title: "I'm a teapot",
+  detail: 'Custom brewing error',
+  code: 'TEAPOT_ERROR',
+  meta: { temperature: 100 },
+})
+```
+
+### Extending ApiError
+
+You can also create your own specialized error classes by extending `ApiError`:
+
+```typescript
+import { ApiError } from 'japi-errors'
+
+class PaymentRequiredError extends ApiError {
+  constructor(detail: string) {
+    super({
+      status: 402,
+      title: 'Payment Required',
+      detail,
+      code: 'PAYMENT_REQUIRED_CUSTOM',
+    })
+  }
+}
+```
+
 ---
 
 ## 🛠️ Key Concepts
