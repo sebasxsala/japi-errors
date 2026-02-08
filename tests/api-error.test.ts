@@ -70,9 +70,9 @@ describe('ApiError', () => {
       source: { parameter: 'query' },
     })
 
-    const json = error.toJsonApiDocument()
+    const jsonDocument = error.toJsonApiDocument()
 
-    expect(json).toEqual({
+    expect(jsonDocument).toEqual({
       errors: [
         {
           status: '400',
@@ -85,6 +85,11 @@ describe('ApiError', () => {
         },
       ],
     })
+
+    const json = error.toJsonApiObject()
+
+    expect(json.meta.foo).toBe('bar')
+    expect(json.source?.parameter).toBe('query')
   })
 
   test('toJsonApi should sanitize internal errors when status >= 500', () => {
@@ -93,13 +98,16 @@ describe('ApiError', () => {
       title: 'Database Crash',
       detail: 'SQL logic error at line 42',
       code: 'DB_CRASH',
+      meta: { foo: 'bar' },
     })
 
     const json = error.toJsonApiDocument()
 
-    expect(json.errors[0]?.title).toBe('Internal Server Error')
-    expect(json.errors[0]?.detail).toBe('An unexpected error occurred on the server.')
-    expect(json.errors[0]?.code).toBe('INTERNAL_SERVER_ERROR')
+    expect(json.errors[0].title).toBe('Internal Server Error')
+    expect(json.errors[0].detail).toBe('An unexpected error occurred on the server.')
+    expect(json.errors[0].code).toBe('INTERNAL_SERVER_ERROR')
+    expect(json.errors[0]).not.toHaveProperty('meta')
+    expect(json.errors[0]).not.toHaveProperty('source')
   })
 
   test('toJsonApi should allow forcing sanitize', () => {

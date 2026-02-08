@@ -1,5 +1,4 @@
 import type {
-  JsonApiErrorDocument,
   JsonApiErrorObject,
   JsonApiLinks,
   JsonApiSource,
@@ -153,7 +152,7 @@ export class ApiError<
       ...(this.links ? { links: this.links } : {}),
       ...(!sanitize && this.source ? { source: this.source as any } : {}),
       ...(!sanitize && this.meta ? { meta: this.meta as any } : {}),
-    }
+    } as JsonApiErrorObject<M, S>
   }
 
   /**
@@ -163,7 +162,7 @@ export class ApiError<
    * @param opts.sanitize - Whether to sanitize the error (hide sensitive details).
    *                        Defaults to the inverse of `expose` or true for status >= 500.
    */
-  toJsonApiDocument(opts?: { sanitize?: boolean }): JsonApiErrorDocument<M, S> {
+  toJsonApiDocument(opts?: { sanitize?: boolean }): { errors: [JsonApiErrorObject<M, S>] } {
     return {
       errors: [this.toJsonApiObject(opts)],
     }

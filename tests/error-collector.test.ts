@@ -38,17 +38,50 @@ describe('ErrorCollector', () => {
     expect(collector.hasErrors).toBe(false)
   })
 
+  test('should throw first ApiError if only one error exists', () => {
+    const collector = new ErrorCollector()
+    collector.add(
+      new ApiError({
+        status: 400,
+        title: 'Bad Request',
+        detail: 'Invalid input',
+        code: 'BAD_REQUEST',
+      }),
+    )
+
+    expect(() => collector.throw()).toThrow(ApiError)
+    try {
+      collector.throw()
+    } catch (e) {
+      expect(e).toBeInstanceOf(ApiError)
+      if (e instanceof ApiError) {
+        expect(e.status).toBe(400)
+        expect(e.title).toBe('Bad Request')
+        expect(e.detail).toBe('Invalid input')
+        expect(e.code).toBe('BAD_REQUEST')
+      }
+    }
+  })
+
   test('should throw AggregateError if errors exist', () => {
     const collector = new ErrorCollector()
     collector.add(new Error('test'))
+    collector.add(
+      new ApiError({
+        status: 400,
+        title: 'Bad Request',
+        detail: 'Invalid input',
+        code: 'BAD_REQUEST',
+      }),
+    )
 
-    expect(() => collector.throwIfAny()).toThrow(AggregateError)
+    expect(() => collector.throw()).toThrow(AggregateError)
     try {
-      collector.throwIfAny()
+      collector.throw()
     } catch (e) {
       expect(e).toBeInstanceOf(AggregateError)
       if (e instanceof AggregateError) {
-        expect(e.errors).toHaveLength(1)
+        expect(e.errors).toHaveLength(2)
       }
     }
   })
