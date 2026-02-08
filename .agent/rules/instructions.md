@@ -40,30 +40,10 @@ Lightweight (~2.5KB) zero-dependency TypeScript library for standardizing errors
 - Constants: `SCREAMING_SNAKE_CASE`
 - Files: `kebab-case`
 
-## JSON:API Error Format
-
-```typescript
-{
-  errors: [{
-    id?: string;
-    status: string;        // HTTP code as string
-    code?: string;         // App-specific
-    title: string;         // Human-readable
-    detail?: string;
-    source?: {
-      pointer?: string;    // JSON Pointer
-      parameter?: string;
-      header?: string;
-    };
-    meta?: Record<string, unknown>;
-  }]
-}
-```
-
 ## Testing
 
 - Test new features + edge cases
-- Aim for >90% coverage
+- Aim for 100% coverage
 - Descriptive names: `it('should sanitize stack trace for 500 errors')`
 - Run before committing:
 
