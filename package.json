@@ -2,6 +2,9 @@
   "name": "japi-errors",
   "version": "0.1.1",
   "license": "MIT",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
