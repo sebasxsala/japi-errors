@@ -8,9 +8,6 @@ import type { ProblemDetails } from '../types'
  * @param opts - Options for the conversion
  * @returns A Problem Details object
  */
-export function formatProblemDetails(
-  error: ApiError,
-  opts?: { sanitize?: boolean },
-): ProblemDetails {
+export function toProblemDetails(error: ApiError, opts?: { sanitize?: boolean }): ProblemDetails {
   return error.toProblemDetails(opts)
 }
